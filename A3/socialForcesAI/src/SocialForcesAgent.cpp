@@ -141,6 +141,7 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 		throw Util::GenericException("No goals were specified!\n");
 	}
 
+	//removing previous goals from queue (my understanding)
 	while (!_goalQueue.empty())
 	{
 		_goalQueue.pop();
@@ -148,6 +149,7 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 
 	// iterate over the sequence of goals specified by the initial conditions.
 	for (unsigned int i=0; i<initialConditions.goals.size(); i++) {
+		std::cout << "Goal type: " << initialConditions.goals[i].goalType << "\n";
 		if (initialConditions.goals[i].goalType == SteerLib::GOAL_TYPE_SEEK_STATIC_TARGET ||
 				initialConditions.goals[i].goalType == GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL)
 		{
@@ -165,6 +167,9 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 				_goalQueue.push(initialConditions.goals[i]);
 			}
 		}
+		// else if {
+
+		// }
 		else {
 			throw Util::GenericException("Unsupported goal type; SocialForcesAgent only supports GOAL_TYPE_SEEK_STATIC_TARGET and GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL.");
 		}
@@ -775,6 +780,7 @@ void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNu
 	Util::AxisAlignedBox oldBounds(_position.x - _radius, _position.x + _radius, 0.0f, 0.0f, _position.z - _radius, _position.z + _radius);
 
 	SteerLib::AgentGoalInfo goalInfo = _goalQueue.front();
+	int goalType = goalInfo.goalType;
 	Util::Vector goalDirection;
 	// std::cout << "midtermpath empty: " << _midTermPath.empty() << std::endl;
 	if ( ! _midTermPath.empty() && (!this->hasLineOfSightTo(goalInfo.targetLocation)) )
@@ -855,19 +861,24 @@ void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNu
 					Util::boxOverlapsCircle2D(goalInfo.targetRegion.xmin, goalInfo.targetRegion.xmax,
 							goalInfo.targetRegion.zmin, goalInfo.targetRegion.zmax, this->position(), this->radius())))
 	{
-		_goalQueue.pop();
-		// std::cout << "Made it to a goal" << std::endl;
-		if (_goalQueue.size() != 0)
-		{
-			// in this case, there are still more goals, so start steering to the next goal.
-			goalDirection = _goalQueue.front().targetLocation - _position;
-			_prefVelocity = Util::Vector(goalDirection.x, 0.0f, goalDirection.z);
+		if(goalInfo.goalType == GOAL_TYPE_SEEK_STATIC_TARGET){
+			_goalQueue.pop();
+			// std::cout << "Made it to a goal" << std::endl;
+			if (_goalQueue.size() != 0)
+			{
+				// in this case, there are still more goals, so start steering to the next goal.
+				goalDirection = _goalQueue.front().targetLocation - _position;
+				_prefVelocity = Util::Vector(goalDirection.x, 0.0f, goalDirection.z);
+			}
+			else
+			{
+				// in this case, there are no more goals, so disable the agent and remove it from the spatial database.
+				disable();
+				return;
+			}
 		}
-		else
-		{
-			// in this case, there are no more goals, so disable the agent and remove it from the spatial database.
-			disable();
-			return;
+		else if(goalInfo.goalType == GOAL_TYPE_SEEK_DYNAMIC_TARGET){
+			
 		}
 	}
 

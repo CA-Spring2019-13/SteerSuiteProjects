@@ -27,6 +27,9 @@
 *.out
 *.app
 
+*.vscode
+*.vscode*
+
 # Documentation
 documentation/CodeReference
 documentation/doxygen-warnings.log
