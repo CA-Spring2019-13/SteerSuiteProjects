@@ -36,6 +36,13 @@ public:
 	~SocialForcesAgent();
 	void reset(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
 	void updateAI(float timeStamp, float dt, unsigned int frameNumber);
+	//implementation specific update methods to be called by updateAI
+	void updateAIStandard(float timeStamp, float dt, unsigned int frameNumber);
+	void updateAIPursueAndEvade(float timeStamp, float dt, unsigned int frameNumber);
+	void updateAISecondImplementation(float timeStamp, float dt, unsigned int frameNumber);
+	void updateAIThirdImplementation(float timeStamp, float dt, unsigned int frameNumber);
+
+
 	void disable();
 	void draw();
 
