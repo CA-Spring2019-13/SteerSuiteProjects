@@ -34,6 +34,8 @@ class SocialForcesAgent : public SteerLib::AgentInterface
 public:
 	SocialForcesAgent();
 	~SocialForcesAgent();
+	void resetPursueAndEvade(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
+	void resetSecondImplementation(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
 	void reset(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
 	void updateAI(float timeStamp, float dt, unsigned int frameNumber);
 	//implementation specific update methods to be called by updateAI
@@ -41,6 +43,9 @@ public:
 	void updateAIPursueAndEvade(float timeStamp, float dt, unsigned int frameNumber);
 	void updateAISecondImplementation(float timeStamp, float dt, unsigned int frameNumber);
 	void updateAIThirdImplementation(float timeStamp, float dt, unsigned int frameNumber);
+
+	//updates goals for pursuer and evader per step
+	void updateAgentParametersPursueAndEvade(float dt);
 
 
 	void disable();
@@ -69,6 +74,8 @@ public:
 	// bool collidesAtTimeWith(const Util::Point & p1, const Util::Vector & rightSide, float otherAgentRadius, float timeStamp, float footX, float footZ);
 	// void insertAgentNeighbor(const SteerLib::AgentInterface * agent, float &rangeSq) {throw Util::GenericException("clearGoals() not implemented yet for SocialForcesAgent");}
 	// bool compareDist(SteerLib::AgentInterface * a1, SteerLib::AgentInterface * a2 );
+
+
 
 protected:
 	/// Updates position, velocity, and orientation of the agent, given the force and dt time step.

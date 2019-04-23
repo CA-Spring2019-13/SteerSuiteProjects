@@ -24,7 +24,7 @@
   </suggestedCameraView>
 
   <suggestedCameraView>
-    <position> <x>104</x> <y>80</y> <z>0</z> </position>
+    <position> <x>130</x> <y>120</y> <z>0</z> </position>
     <lookat> <x>47</x> <y>0</y> <z>0</z> </lookat>
     <up> <x>0</x> <y>1</y> <z>0</z> </up>
     <fovy>45</fovy>
@@ -75,7 +75,6 @@
     <zmax>44</zmax>
   </obstacle> -->
 
-
 	<!--
   @pursuing agent
 -->
@@ -83,18 +82,37 @@
     <name>Pursuer</name>
     <initialConditions>
       <radius>0.5</radius>
-      <position> <x>0</x> <y>0</y> <z>0</z> </position>
+      <position> <x>30</x> <y>0</y> <z>30</z> </position>
       <direction> <random>true</random> </direction>
-      <speed>0</speed>
+      <speed>5</speed>
       <color> <r>0</r> <g>1</g> <b>0</b> </color>
     </initialConditions>
     <goalSequence>
       <seekDynamicTarget>
-        <targetName> Pursuer Target </targetName>
-        <!-- <targetTangent> <x>1</x> <y>0</y> <z>0</z> </targetTangent> -->
-        <!-- <targetTime>30</targetTime> -->
-        <desiredSpeed>1.50</desiredSpeed>
-        <timeDuration>10000</timeDuration>
+        <Behaviour>
+          <SteeringAlgorithm>Pursue And Evade</SteeringAlgorithm>
+          <Parameters>
+            <parameter>
+                <key>sf_agent_repulsion_importance</key>
+                <value>0</value>
+            </parameter>
+            <parameter>
+                <key>sf_query_radius</key>
+                <value>200</value>
+            </parameter>
+            <parameter>
+                <key>sf_max_speed</key>
+                <value>15</value>
+            </parameter>
+            <parameter>
+                <key>sf_personal_space_threshold</key>
+                <value>0</value>
+            </parameter>
+          </Parameters>
+        </Behaviour>
+        <targetLocation> <x>-30</x> <y>0</y> <z>20</z> </targetLocation>        
+        <desiredSpeed>6</desiredSpeed>
+        <timeDuration>1000</timeDuration>
       </seekDynamicTarget>
     </goalSequence>
   </agent>
@@ -107,92 +125,82 @@
     <name>Evader</name>
     <initialConditions>
       <radius>0.5</radius>
-      <position> <x>1</x> <y>0</y> <z>1</z> </position>
+      <position> <x>20</x> <y>0</y> <z>20</z> </position>
       <direction> <random>true</random> </direction>
-      <speed>0</speed>
+      <speed>5</speed>
       <color> <r>1</r> <g>0</g> <b>0</b> </color>
     </initialConditions>
     <goalSequence>
       <fleeDynamicTarget>
-        <targetLocation> Evader Target </targetLocation>
-        <!-- <targetTangent> <x>1</x> <y>0</y> <z>0</z> </targetTangent> -->
-        <!-- <targetTime>30</targetTime> -->
-        <desiredSpeed>1.5</desiredSpeed>
-        <timeDuration>10000</timeDuration>
+        <Behaviour>
+          <SteeringAlgorithm>Pursue And Evade</SteeringAlgorithm>
+          <Parameters>
+            <parameter>
+                <key>sf_agent_repulsion_importance</key>
+                <value>0</value>
+            </parameter>
+            <parameter>
+                <key>sf_query_radius</key>
+                <value>200</value>
+            </parameter>
+            <parameter>
+                <key>sf_max_speed</key>
+                <value>15</value>
+            </parameter>
+            <parameter>
+                <key>sf_personal_space_threshold</key>
+                <value>0</value>
+            </parameter>
+          </Parameters>
+        </Behaviour>
+        <targetLocation> <x>-98</x> <y>0</y> <z>5</z> </targetLocation>        
+        <desiredSpeed>4</desiredSpeed>
+        <timeDuration>1000</timeDuration>
       </fleeDynamicTarget>
     </goalSequence>
   </agent>
+  
+  <!-- GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL -->
 
-    <agent>
+
+  <!-- <agent>
     <name>Pursuer Target</name>
     <initialConditions>
-      <!-- <radius>0.5</radius> -->
-      <position> <x>1</x> <y>0</y> <z>1</z> </position>
-      <!-- <direction> <random>true</random> </direction> -->
-      <speed>0</speed>
-      <!-- <color> <r>0</r> <g>1</g> <b>0</b> </color> -->
+    <radius>0.1</radius>
+    <position> <x>10</x> <y>0</y> <z>15</z> </position>
+    <direction> <random>true</random> </direction> 
+    <speed>0</speed>
     </initialConditions>
-    <!-- <goalSequence>
-      <seekDynamicTarget>
-        <targetName> Evader </targetName>
-        <desiredSpeed>1.5</desiredSpeed>
-        <timeDuration>10000</timeDuration>
-      </seekDynamicTarget>
-    </goalSequence> -->
+    <goalSequence>
+      <axisAlignedBoxGoal>
+        <xmin>4.5</xmin>
+        <xmax>5.5</xmax>
+        <ymin>0</ymin>
+        <ymax>1</ymax>
+        <zmin>1.2</zmin>
+        <zmax>44</zmax>
+      </axisAlignedBoxGoal>
+      <idle>
+        <desiredSpeed>1.3</desiredSpeed>
+        <timeDuration>1000</timeDuration>
+      </idle>
+    </goalSequence>
   </agent>
-
-	<!--
-  @evading agent
--->
 
   <agent>
     <name>Evader Target</name>
     <initialConditions>
-      <!-- <radius>0.5</radius> -->
-      <position> <random>true</random> </position>
-      <!-- <direction> <random>true</random> </direction> -->
-      <speed>0</speed>
-      <!-- <color> <r>1</r> <g>0</g> <b>0</b> </color> -->
-    </initialConditions>
-    <!-- <goalSequence>
-      <fleeDynamicTarget>
-        <targetName> Pursuer </targetName>
-         <targetTangent> <x>1</x> <y>0</y> <z>0</z> </targetTangent>
-         <targetTime>30</targetTime>
-        <desiredSpeed>1.5</desiredSpeed>
-        <timeDuration>10000</timeDuration>
-      </fleeDynamicTarget>
-    </goalSequence> -->
-  </agent>
-
-<!-- 
-  <agentRegion>
-    <numAgents>20</numAgents>
-    <regionBounds>
-      <xmin>23</xmin>
-      <xmax>90</xmax>
-      <ymin>0</ymin>
-      <ymax>0</ymax>
-      <zmin>-40</zmin>
-      <zmax>40</zmax>
-    </regionBounds>
-    <initialConditions>
+      <radius>0.1</radius>
+      <position> <x>-10</x> <y>0</y> <z>10</z> </position>
       <direction> <random>true</random> </direction>
-      <radius>0.5</radius>
       <speed>0</speed>
-    </initialConditions>
+    </initialConditions>\    
     <goalSequence>
-      <seekStaticTarget>
-        <targetLocation>
-        <x>-90</x>
-        <y>0</y>
-        <z>90</z>
-      </targetLocation>
+      <idle>
         <desiredSpeed>1.3</desiredSpeed>
-        <timeDuration>1000.0</timeDuration>
-      </seekStaticTarget>
+        <timeDuration>1000</timeDuration>
+      </idle>
     </goalSequence>
-
-  </agentRegion> -->
+  </agent> -->
 
 </SteerBenchTestCase>
