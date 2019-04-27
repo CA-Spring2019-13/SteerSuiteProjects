@@ -84,159 +84,6 @@ void SocialForcesAgent::disable()
 
 }
 
-void SocialForcesAgent::resetPursueAndEvade(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo){
-	// compute the "old" bounding box of the agent before it is reset.  its OK that it will be invalid if the agent was previously disabled
-	// because the value is not used in that case.
-	// std::cout << "resetting agent " << this << std::endl;
-	_waypoints.clear();
-	_midTermPath.clear();
-
-	dont_plan = true;
-	
-	//For pursue and evade
-	_SocialForcesParams.sf_agent_repulsion_importance = 0;
-	_SocialForcesParams.sf_query_radius = 200;
-	_SocialForcesParams.sf_max_speed = 15;
-
-	std::cout << "query radius: " << _SocialForcesParams.sf_query_radius << "\n";
-
-
-	Util::AxisAlignedBox oldBounds(_position.x-_radius, _position.x+_radius, 0.0f, 0.5f, _position.z-_radius, _position.z+_radius);
-
-
-	// initialize the agent based on the initial conditions
-	/*
-	position_ = Vector2(initialConditions.position.x, initialConditions.position.z);
-	radius_ = initialConditions.radius;
-	velocity_ = normalize(Vector2(initialConditions.direction.x, initialConditions.direction.z));
-	velocity_ = velocity_ * initialConditions.speed;
-*/
-
-	// std::cout << "AGENT NAME: " << initialConditions.name << "\n";
-	// initialize the agent based on the initial conditions
-	std::string targetBehaviour = initialConditions.goals.front().targetBehaviour.getSteeringAlg();
-	std::cout << "Behaviour " << targetBehaviour << "\n";
-	_position = initialConditions.position;
-	_forward = normalize(initialConditions.direction);
-	_radius = initialConditions.radius;
-	_velocity = initialConditions.speed * _forward;
-	// std::cout << "inital colour of agent " << initialConditions.color << std::endl;
-	if ( initialConditions.colorSet == true )
-	{
-		this->_color = initialConditions.color;
-	}
-	else
-	{
-		this->_color = Util::gBlue;
-	}
-
-	// compute the "new" bounding box of the agent
-	Util::AxisAlignedBox newBounds(_position.x-_radius, _position.x+_radius, 0.0f, 0.5f, _position.z-_radius, _position.z+_radius);
-
-	if (!_enabled) {
-		// if the agent was not enabled, then it does not already exist in the database, so add it.
-		// std::cout
-		getSimulationEngine()->getSpatialDatabase()->addObject( dynamic_cast<SpatialDatabaseItemPtr>(this), newBounds);
-	}
-	else {
-		// if the agent was enabled, then the agent already existed in the database, so update it instead of adding it.
-		// std::cout << "new position is " << _position << std::endl;
-		// std::cout << "new bounds are " << newBounds << std::endl;
-		// std::cout << "reset update " << this << std::endl;
-		getSimulationEngine()->getSpatialDatabase()->updateObject( dynamic_cast<SpatialDatabaseItemPtr>(this), oldBounds, newBounds);
-		// engineInfo->getSpatialDatabase()->updateObject( this, oldBounds, newBounds);
-	}
-
-	_enabled = true;
-
-	if (initialConditions.goals.size() == 0)
-	{
-		throw Util::GenericException("No goals were specified!\n");
-	}
-
-	//removing previous goals from queue (my understanding)
-	while (!_goalQueue.empty())
-	{
-		_goalQueue.pop();
-	}
-
-	// std::cout << "AGENT RESET: GOAL - " << initialConditions.goals[0].goalType << "\n";
-	// iterate over the sequence of goals specified by the initial conditions.
-	for (unsigned int i=0; i<initialConditions.goals.size(); i++) {
-		// std::cout << "Goal type: " << initialConditions.goals[i].goalType << "\n";
-		if (initialConditions.goals[i].goalType == SteerLib::GOAL_TYPE_SEEK_STATIC_TARGET ||
-			initialConditions.goals[i].goalType == SteerLib::GOAL_TYPE_SEEK_DYNAMIC_TARGET ||
-			initialConditions.goals[i].goalType == SteerLib::GOAL_TYPE_FLEE_DYNAMIC_TARGET ||
-			initialConditions.goals[i].goalType == SteerLib::GOAL_TYPE_IDLE ||
-				initialConditions.goals[i].goalType == GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL)
-		{
-			if (initialConditions.goals[i].targetIsRandom)
-			{
-				// if the goal is random, we must randomly generate the goal.
-				// std::cout << "assigning random goal" << std::endl;
-				SteerLib::AgentGoalInfo _goal;
-				_goal.targetLocation = getSimulationEngine()->getSpatialDatabase()->randomPositionWithoutCollisions(1.0f, true);
-				_goalQueue.push(_goal);
-				_currentGoal.targetLocation = _goal.targetLocation;
-			}
-			else
-			{
-				_goalQueue.push(initialConditions.goals[i]);
-			}
-		}
-		else {
-			throw Util::GenericException("Unsupported goal type; SocialForcesAgent only supports GOAL_TYPE_SEEK_STATIC_TARGET and GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL.");
-		}
-	}
-
-	_currentGoal = _goalQueue.front();
-	runLongTermPlanning(_goalQueue.front().targetLocation, dont_plan);
-
-	// std::cout << "first waypoint: " << _waypoints.front() << " agents position: " << position() << std::endl;
-	/*
-	 * Must make sure that _waypoints.front() != position(). If they are equal the agent will crash.
-	 * And that _waypoints is not empty
-	 */
-	Util::Vector goalDirection;
-	if ( !_midTermPath.empty() )
-	{
-		this->updateLocalTarget();
-		goalDirection = normalize( this->_currentLocalTarget - position());
-	}
-	else
-	{
-		goalDirection = normalize( _currentGoal.targetLocation - position());
-	}
-
-	_prefVelocity =
-			(
-				(
-					(
-						Util::Vector(goalDirection.x, 0.0f, goalDirection.z) *
-						PERFERED_SPEED
-					)
-				- velocity()
-				)
-				/
-				_SocialForcesParams.sf_acceleration
-			)
-			*
-			MASS;
-
-	// _velocity = _prefVelocity;
-#ifdef _DEBUG_ENTROPY
-	std::cout << "goal direction is: " << goalDirection << " prefvelocity is: " << prefVelocity_ <<
-			" and current velocity is: " << velocity_ << std::endl;
-#endif
-
-
-	// std::cout << "Parameter spec: " << _SocialForcesParams << std::endl;
-	// _gEngine->addAgent(this, rvoModule);
-	assert(_forward.length()!=0.0f);
-	assert(_goalQueue.size() != 0);
-	assert(_radius != 0.0f);
-}
-
 void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo)
 {
 	// compute the "old" bounding box of the agent before it is reset.  its OK that it will be invalid if the agent was previously disabled
@@ -259,23 +106,8 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 	Behaviour simulationBehaviour = initialConditions.goals.front().targetBehaviour;
 	setParameters(simulationBehaviour);
 
-	std::cout << "Set paramters based on target behaviour\n";
-
-	std::cout << "_SocialForcesParams.sf_agent_repulsion_importance =" << _SocialForcesParams.sf_agent_repulsion_importance
-				<< "\n_SocialForcesParams.sf_query_radius =" << _SocialForcesParams.sf_query_radius
-				<< "\n_SocialForcesParams.sf_personal_space_threshold =" << _SocialForcesParams.sf_personal_space_threshold
-
-				<< "\n_SocialForcesParams.sf_max_speed =" << _SocialForcesParams.sf_max_speed << "\n";
-
-	// //For pursue and evade
-	// _SocialForcesParams.sf_agent_repulsion_importance = 0;
-	// _SocialForcesParams.sf_query_radius = 200;
-	// _SocialForcesParams.sf_max_speed = 15;
-	
-
-
 	std::string targetBehaviour = initialConditions.goals.front().targetBehaviour.getSteeringAlg();
-	std::cout << "Behaviour " << targetBehaviour << "\n";
+	// std::cout << "Behaviour " << targetBehaviour << "\n";
 	//do not want a midterm path for Pursue and Evade
 	if (targetBehaviour == "Pursue And Evade"){
 		dont_plan = true;
@@ -948,11 +780,6 @@ void SocialForcesAgent::computeNeighbors()
 
 void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNumber)
 {	
-	//Even though there are different updateAI methods for each implementation they should be somewhat similar so I copy pasted
-	//the standard one into the new ones, to be modified where needed
-	
-	//need to add conditionals here: 
-	//create new class parameter that stores the implementation being run - like PursueAndEvade or WallFollower
 
 	std::string behave = currentGoal().targetBehaviour.getSteeringAlg();
 	
@@ -970,7 +797,9 @@ void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNu
 		updateAISecondImplementation(timeStamp, dt, frameNumber);
 	}
 
-
+	else if(behave == "Queuing"){
+		updateAIQueuing(timeStamp, dt, frameNumber);
+	}
 }
 
 //updates goals for pursuer and evader per step
@@ -1184,7 +1013,8 @@ void SocialForcesAgent::updateAIPursueAndEvade(float timeStamp, float dt, unsign
 
 }
 
-void SocialForcesAgent::updateAISecondImplementation(float timeStamp, float dt, unsigned int frameNumber){
+void SocialForcesAgent::updateAISecondImplementation(float timeStamp, float dt, unsigned int frameNumber)
+{
 	// std::cout << "_SocialForcesParams.rvo_max_speed " << _SocialForcesParams._SocialForcesParams.rvo_max_speed << std::endl;
 	Util::AutomaticFunctionProfiler profileThisFunction( &SocialForcesGlobals::gPhaseProfilers->aiProfiler );
 	if (!enabled())
@@ -1301,6 +1131,218 @@ void SocialForcesAgent::updateAISecondImplementation(float timeStamp, float dt, 
 	}
 	// _position = _position + (_velocity * dt);
 }
+
+float SocialForcesAgent::calculateBrakingForceMultiplier(Vector prefVelocity)
+{
+
+	//Check to see if there exist agents in front of & moving slower than this agent
+	
+	//return braking force multiplier: ratio of agentInFront speed to this agent's speed
+	//If the agent in front is moving faster, return 1 (no need to brake)
+	
+	// EXAMPLE:  if agent in front is moving at 8 units/time
+	// and this agent is moving at 10 units/time, multiplier is 8/10 = .8 -
+	//Agent will slow down and avoid collision with agent in front
+	//This is computed each frame so once the agent in front
+	//starts moving faster, the braking force will be reduced or eliminated
+
+	SteerLib::AgentInterface* agentInFront;
+
+	float t;
+	SpatialDatabaseItemPtr object = NULL;
+	Ray lineOfSightTest;
+	Vector direction = _forward;
+	lineOfSightTest.initWithUnitInterval(_position, direction);
+	getSimulationEngine()->getSpatialDatabase()->trace(lineOfSightTest, t, object, dynamic_cast<SpatialDatabaseItemPtr>(this),false);
+	
+	//there is no agent directly in front of current agent
+	if(!object){
+		// std::cout << "N ";
+		return 1;
+	}
+
+	//Ignore if object and not agent
+	if(!object->isAgent()){
+		// std::cout << "Found wall\n";
+		return 1;
+	}
+
+	agentInFront = dynamic_cast<SteerLib::AgentInterface *>(object);
+	
+	float brakingForceMultiplier;
+
+	float agentInFrontSpeed = agentInFront->velocity().length();
+	float agentSpeed = prefVelocity.length();
+
+	bool movingSlower = false;
+
+	
+	//check if the agent in front is moving slower than this agent's desired velocity
+	if(agentInFrontSpeed < agentSpeed){
+		movingSlower = true;
+	}
+
+	//Will consider agent within 2.5 units as "nearby"
+	float distanceToAgent = (agentInFront->position() - this->position()).length();
+	//we consider an agent < 1.33 units away close
+	if(movingSlower && distanceToAgent <= 2.5f){
+		// std::cout << "Found agent in front of current agent moving slower\n";
+		// std::cout << "This Agent\nPosition: " << this->position() << " Velocity: "
+		// << this->velocity() << "\n\n";
+		// std::cout << "Agent In Front\nPosition: " << agentInFront->position() << " Velocity: "
+		// << agentInFront->velocity() << "\n";
+
+		brakingForceMultiplier = agentInFrontSpeed/agentSpeed;
+
+		// std::cout << "Braking force multiplier: " << brakingForceMultiplier << "\n\n\n";
+		return brakingForceMultiplier;
+	}
+
+	//No agent is in front of and moving slower than this agent,
+	//so don't apply braking force
+	return 1;
+
+}
+
+void SocialForcesAgent::updateAIQueuing(float timeStamp, float dt, unsigned int frameNumber)
+{
+	// std::cout << "_SocialForcesParams.rvo_max_speed " << _SocialForcesParams._SocialForcesParams.rvo_max_speed << std::endl;
+	Util::AutomaticFunctionProfiler profileThisFunction( &SocialForcesGlobals::gPhaseProfilers->aiProfiler );
+	if (!enabled())
+	{
+		return;
+	}
+
+	Util::AxisAlignedBox oldBounds(_position.x - _radius, _position.x + _radius, 0.0f, 0.0f, _position.z - _radius, _position.z + _radius);
+
+	SteerLib::AgentGoalInfo goalInfo = _goalQueue.front();
+	Util::Vector goalDirection;
+	// std::cout << "midtermpath empty: " << _midTermPath.empty() << std::endl;
+	if ( ! _midTermPath.empty() && (!this->hasLineOfSightTo(goalInfo.targetLocation)) )
+	{
+		if (reachedCurrentWaypoint())
+		{
+			this->updateMidTermPath();
+		}
+
+		this->updateLocalTarget();
+
+		goalDirection = normalize(_currentLocalTarget - position());
+
+	}
+	else
+	{
+		goalDirection = normalize(goalInfo.targetLocation - position());
+	}
+
+	// if((frameNumber % 5) == 0){
+	// 	std::cout << "GOAL: TARGET NAME = " << goalInfo.targetName <<  "GOAL LOCATION = " << goalInfo.targetLocation << "\n";
+	// }
+
+	// _prefVelocity = goalDirection * PERFERED_SPEED;
+
+	Util::Vector prefForce = (((goalDirection * currentGoal().desiredSpeed) - velocity()) / (_SocialForcesParams.sf_acceleration/dt)); //assumption here
+	prefForce = prefForce + velocity();
+	// _velocity = prefForce;
+
+	Util::Vector repulsionForce = calcRepulsionForce(dt);
+	if ( repulsionForce.x != repulsionForce.x)
+	{
+		std::cout << "Found some nan" << std::endl;
+		repulsionForce = velocity();
+		// throw GenericException("SocialForces numerical issue");
+	}
+	Util::Vector proximityForce = calcProximityForce(dt);
+// #define _DEBUG_ 1
+#ifdef _DEBUG_
+	std::cout << "agent" << id() << " repulsion force " << repulsionForce << std::endl;
+	std::cout << "agent" << id() << " proximity force " << proximityForce << std::endl;
+	std::cout << "agent" << id() << " pref force " << prefForce << std::endl;
+#endif
+	// _velocity = _newVelocity;
+	int alpha=1;
+	if ( repulsionForce.length() > 0.0)
+	{
+		alpha=0;
+	}
+
+	_velocity = (prefForce) + repulsionForce + proximityForce;
+	
+	float brakingForceMultiplier = calculateBrakingForceMultiplier(_velocity);
+
+	_velocity = brakingForceMultiplier * _velocity;
+
+	//highlight braking agents
+	if(brakingForceMultiplier < 1){
+		this->_color = Util::gRed;
+	}
+	else{
+		this->_color = Util::gBlue;
+	}
+
+	// _velocity = (prefForce);
+	// _velocity = velocity() + repulsionForce + proximityForce;
+
+	_velocity = clamp(velocity(), _SocialForcesParams.sf_max_speed);
+	_velocity.y=0.0f;
+#ifdef _DEBUG_
+	std::cout << "agent" << id() << " speed is " << velocity().length() << std::endl;
+#endif
+	_position = position() + (velocity() * dt);
+	// A grid database update should always be done right after the new position of the agent is calculated
+	/*
+	 * Or when the agent is removed for example its true location will not reflect its location in the grid database.
+	 * Not only that but this error will appear random depending on how well the agent lines up with the grid database
+	 * boundaries when removed.
+	 */
+	// std::cout << "Updating agent" << this->id() << " at " << this->position() << std::endl;
+	Util::AxisAlignedBox newBounds(_position.x - _radius, _position.x + _radius, 0.0f, 0.0f, _position.z - _radius, _position.z + _radius);
+	getSimulationEngine()->getSpatialDatabase()->updateObject( this, oldBounds, newBounds);
+
+/*
+	if ( ( !_waypoints.empty() ) && (_waypoints.front() - position()).length() < radius()*WAYPOINT_THRESHOLD_MULTIPLIER)
+	{
+		_waypoints.erase(_waypoints.begin());
+	}
+	*/
+	/*
+	 * Now do the conversion from SocialForcesAgent into the SteerSuite coordinates
+	 */
+	// _velocity.y = 0.0f;
+
+	if ((goalInfo.targetLocation - position()).length() < radius()*GOAL_THRESHOLD_MULTIPLIER ||
+			(goalInfo.goalType == GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL &&
+					Util::boxOverlapsCircle2D(goalInfo.targetRegion.xmin, goalInfo.targetRegion.xmax,
+							goalInfo.targetRegion.zmin, goalInfo.targetRegion.zmax, this->position(), this->radius())))
+	{
+		_goalQueue.pop();
+		// std::cout << "Made it to a goal" << std::endl;
+		if (_goalQueue.size() != 0)
+		{
+			// in this case, there are still more goals, so start steering to the next goal.
+			goalDirection = _goalQueue.front().targetLocation - _position;
+			_prefVelocity = Util::Vector(goalDirection.x, 0.0f, goalDirection.z);
+		}
+		else
+		{
+			// in this case, there are no more goals, so disable the agent and remove it from the spatial database.
+			disable();
+			return;
+		}
+	}
+
+	// Hear the 2D solution from RVO is converted into the 3D used by SteerSuite
+	// _velocity = Vector(velocity().x, 0.0f, velocity().z);
+	if ( velocity().lengthSquared() > 0.0 )
+	{
+		// Only assign forward direction if agent is moving
+		// Otherwise keep last forward
+		_forward = normalize(_velocity);
+	}
+	// _position = _position + (_velocity * dt);
+
+}
+
 
 void SocialForcesAgent::updateAIStandard(float timeStamp, float dt, unsigned int frameNumber)
 {

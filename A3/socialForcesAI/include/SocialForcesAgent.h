@@ -34,19 +34,18 @@ class SocialForcesAgent : public SteerLib::AgentInterface
 public:
 	SocialForcesAgent();
 	~SocialForcesAgent();
-	void resetPursueAndEvade(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
-	void resetSecondImplementation(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
 	void reset(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
 	void updateAI(float timeStamp, float dt, unsigned int frameNumber);
 	//implementation specific update methods to be called by updateAI
 	void updateAIStandard(float timeStamp, float dt, unsigned int frameNumber);
 	void updateAIPursueAndEvade(float timeStamp, float dt, unsigned int frameNumber);
 	void updateAISecondImplementation(float timeStamp, float dt, unsigned int frameNumber);
-	void updateAIThirdImplementation(float timeStamp, float dt, unsigned int frameNumber);
+	void updateAIQueuing(float timeStamp, float dt, unsigned int frameNumber);
 
 	//updates goals for pursuer and evader per step
 	void updateAgentParametersPursueAndEvade(float dt);
 
+	float calculateBrakingForceMultiplier(Vector prefVelocity);
 
 	void disable();
 	void draw();
