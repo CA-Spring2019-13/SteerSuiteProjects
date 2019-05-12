@@ -76,6 +76,12 @@ namespace SteerLib
 		//TODO
 		std::cout<<"\nIn A*";
 
+		// Weighted A* Implementation
+
+		// ARA* Implementation
+
+		// AD* Implementation
+
 		return false;
 	}
 }
