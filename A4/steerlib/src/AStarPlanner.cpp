@@ -59,19 +59,25 @@ namespace SteerLib
 	}
 
 
-
+	//Do not edit --------------------------------------------
 	Util::Point AStarPlanner::getPointFromGridIndex(int id)
 	{
 		Util::Point p;
 		gSpatialDatabase->getLocationFromIndex(id, p);
 		return p;
 	}
-
+	//--------------------------------------------------------
 
 
 	bool AStarPlanner::computePath(std::vector<Util::Point>& agent_path,  Util::Point start, Util::Point goal, SteerLib::SpatialDataBaseInterface * _gSpatialDatabase, bool append_to_path)
 	{
 		gSpatialDatabase = _gSpatialDatabase;
+
+		double timeElasped;
+		double traversalCost;
+		int pathDistance;
+
+
 
 		//TODO
 		std::cout<<"\nIn A*";
